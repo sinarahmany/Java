@@ -14,6 +14,7 @@ public class Main {
         Scanner scInt = new Scanner(System.in);
         int IntPut = scInt.nextInt();
         System.out.println(IntPut+" ^ 2 = "+Math.pow(IntPut,2));
+        //don`t use ++ use +1 instead cause java will not increament it sometimes!!!
 
 
 
