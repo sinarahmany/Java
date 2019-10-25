@@ -1,6 +1,6 @@
 package com.company;
 
 public interface Ielectonic {
-    public boolean poweron();
-    public boolean poweroff();
+    boolean poweron();
+    boolean poweroff();
 }

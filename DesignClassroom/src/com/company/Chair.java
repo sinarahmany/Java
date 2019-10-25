@@ -40,7 +40,8 @@ public class Chair implements Iinteract {
     public void setOccupied(boolean occupied) {
         isOccupied = occupied;
     }
-
+    private MyDimension dimension;
+    private Physical physical;
     private double height;
     private double width;
     private String color;
