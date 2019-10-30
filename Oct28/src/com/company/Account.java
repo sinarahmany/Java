@@ -3,7 +3,6 @@ package com.company;
 public class Account {
     private double Cbalance;
     private double Sbalance;
-    private double balance = Sbalance+Cbalance;
 
     public double getCbalance() {
         return Cbalance;
@@ -23,15 +22,17 @@ public class Account {
 
     private String name;
     public Account(){
-        this("Unknown",0d);
+        this("Unknown",0d,0d);
     }
-    public Account(String name , double balance){
+    public Account(String name , double Sbalance,double Cbalance){
         this.name= name;
-        this.balance = balance ;
+        this.Sbalance = Sbalance ;
+        this.Cbalance = Cbalance ;
     }
-    public double deposit(double amount){
-        this.balance += amount ;
-        return balance ;
+    public double deposit(double Camount,double Samount){
+        this.Cbalance += Camount ;
+        this.Sbalance += Samount ;
+        return Cbalance,Sbalance ;
     }
     public double withdrawl(double amount){
         if(this.balance < amount){
@@ -40,14 +41,6 @@ public class Account {
         }
         this.balance -= amount ;
         return balance ;
-    }
-
-    public double getBalance() {
-        return balance;
-    }
-
-    public void setBalance(double balance) {
-        this.balance = balance;
     }
 
     public String getName() {
