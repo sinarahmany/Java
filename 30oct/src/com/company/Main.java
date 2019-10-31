@@ -1,6 +1,7 @@
 package com.company;
 
 public class Main {
+    
 
     public static void main(String[] args) {
 
@@ -35,14 +36,17 @@ public class Main {
             System.out.println("your first payment is " + result/2);
             System.out.println("your second payment is " + result/2);
         }catch (Exception e){
-            System.out.println(e.getMessage());
+
+            RegularExpressions.blue("custom divide by zero exception done"+ e.getMessage());
         }finally {
-            System.out.println("custom divide by zero exception done");
             System.out.println("_____________________________");
         }
         System.out.println("The END!");
 
     }
+
+
+
     static double divide(double a,double b ){
         return a/b ;
     }
