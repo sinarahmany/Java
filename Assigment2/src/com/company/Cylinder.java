@@ -3,7 +3,7 @@ import com.company.calculator.Calculator;
 
 public class Cylinder extends Shape {
     private double radius, height ;
-    //defult constructor
+    //defualt constructor
     public Cylinder() {this( 0 ,0 ); }
 
     //overloaded constructor
