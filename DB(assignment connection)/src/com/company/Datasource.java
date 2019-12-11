@@ -25,6 +25,9 @@ public class Datasource {
     private PreparedStatement insertIntoProductCategories;
     private PreparedStatement deleteProducts;
     private PreparedStatement deleteProductsCategory;
+    private PreparedStatement deleteCustomer;
+    private PreparedStatement updateProducts;
+    private PreparedStatement updateCustomers;
 
 
     public boolean open() {
@@ -79,6 +82,9 @@ public class Datasource {
             insertIntoCustomers = conn.prepareStatement("INSERT INTO customers (name, email, address, phone, created_at) VALUES (? , ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             deleteProducts = conn.prepareStatement("UPDATE products SET active = 0 WHERE id  = ?  ");
             deleteProductsCategory = conn.prepareStatement("UPDATE products_categories SET active = 0 WHERE products_id  = ? ");
+            deleteCustomer = conn.prepareStatement("UPDATE customers SET active = 0 WHERE id = ?");
+            updateProducts = conn.prepareStatement("UPDATE products SET price = ? WHERE id = ? ");
+            updateCustomers = conn.prepareStatement("UPDATE customers SET name = ? WHERE id = ? ");
             return true;
         } catch (SQLException e) {
             System.out.println("Couldn't connect to database: " + e.getMessage());
@@ -187,31 +193,37 @@ public class Datasource {
 
     }
 
-    public List<Customer> queryCustomers() {
+    public void queryCustomers() {
 
-        List<Customer> cl = new ArrayList<>();
+
 
         try {
             ResultSet rs = queryCustomersInfo.executeQuery();
-
+            System.out.println("\u001B[34m______________________________________________________________________________________");
+            System.out.format("%-7s %-30s %-20s %-12s %-10s\n", "id", "name", "email", "address", "phone");
+            System.out.println("______________________________________________________________________________________\u001B[37m");
             while (rs.next()) {
-                cl.add(new Customer(
-                                rs.getInt("id"),
-                                rs.getString("name"),
-                                rs.getString("email"),
-                                rs.getString("address"),
-                                rs.getString("phone")
-                        )
-                );
+                 {System.out.format("%-7s %-20.17s %-30.27s %-12.9s %-10s\n",
+
+                                    rs.getInt("id"),
+                                    rs.getString("name"),
+                                    rs.getString("email"),
+                                    rs.getString("address"),
+                                    rs.getString("phone")
+
+                    );
+                }
+
             }
+
 
 
         } catch (SQLException e) {
             System.out.println(e.getMessage());
-            return null;
+
         }
 
-        return cl;
+
 
     }
 
@@ -247,10 +259,10 @@ public class Datasource {
 
 
             ResultSet rs = queryProductCategoryCurrenciesInfo.executeQuery();
-            System.out.println("_____________________________________________________");
+            System.out.println("\u001B[34m_____________________________________________________");
             System.out.format("%-15s %-8s %-8s %-8s %-10s\n", "Product", "Price", "Price", "Price", "Category");
             System.out.format("%-15s %-8s %-8s %-8s %-10s\n", "", "CAD", "USD", "JPY", "");
-            System.out.println("_____________________________________________________");
+            System.out.println("_____________________________________________________\u001B[37m");
             while (rs.next()) {
                 System.out.format("%-15s %-8.2f %-8.2f %-8.2f %-10s\n",
                         rs.getString("Product"),
@@ -427,8 +439,8 @@ public class Datasource {
 
     }
 
-    public void deletingProducts (String name) throws SQLException{
-        queryProduct.setString(1, name);
+    public void deletingProducts (String email) throws SQLException{
+        queryProduct.setString(1, email);
         ResultSet results = queryProduct.executeQuery();
 
         if (results.next()) {
@@ -450,6 +462,78 @@ public class Datasource {
         }
     }
 
+
+    public void deletingCustomer (String name) throws SQLException{
+        queryCustomer.setString(1, name);
+        ResultSet results = queryCustomer.executeQuery();
+
+        if (results.next()) {
+
+            int Customer_id = results.getInt("id");
+            deleteCustomer.setInt(1,Customer_id);
+
+            int affectedRows1 = deleteCustomer.executeUpdate();
+            if (affectedRows1 != 1 ) {
+                throw new SQLException("Couldn't Delete Customer!");
+            }
+
+
+        } else {
+
+            System.out.println("Couldn't get id for Customer");
+        }
+    }
+
+    public void updateProducts(String productName, double productPrice) throws SQLException {
+
+        queryProduct.setString(1, productName);
+        ResultSet results = queryProduct.executeQuery();
+
+        if (results.next()) {
+
+            int products_id = results.getInt("id");
+
+            updateProducts.setDouble(1, productPrice);
+            updateProducts.setInt(2, products_id);
+
+
+            int affectedRows = updateProducts.executeUpdate();
+
+            if (affectedRows != 1) {
+                throw new SQLException("Couldn't update product!");
+            }
+
+        } else {
+            System.out.println("product does not exist");
+        }
+    }
+
+
+    public void updateCustomers(String customerEmail , String customerNewName) throws SQLException {
+
+        queryCustomer.setString(1, customerEmail);
+        ResultSet results = queryCustomer.executeQuery();
+
+        if (results.next()) {
+
+            int customer_id = results.getInt("id");
+
+            updateCustomers.setString(1, customerNewName);
+            updateCustomers.setInt(2, customer_id);
+
+
+            int affectedRows = updateCustomers.executeUpdate();
+
+            if (affectedRows != 1) {
+                throw new SQLException("Couldn't update product!");
+            }
+
+
+        } else {
+            System.out.println("customer does not exist");
+        }
+
+    }
 
 
 
