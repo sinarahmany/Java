@@ -21,12 +21,13 @@ public class Main {
 
         if (ds.open()) {
 
-            String text = "connected to db\n";
+            String text = ". . . . . .\nconnected to db\n";
             int j;
             for(j = 0; j < text.length(); j++){
                 System.out.printf("%c", text.charAt(j));
                 try{
-                    Thread.sleep(20);//0.5s pause between characters
+                    //Thread.sleep(400-(j*14));//0.5s pause between characters
+                    Thread.sleep(5);
                 }catch(InterruptedException ex){
                     Thread.currentThread().interrupt();
                 }
@@ -62,6 +63,8 @@ public class Main {
                                  String phone = myObj.nextLine();
                                  ds.insertCustomer(name,email,address,phone);
 
+
+
                              }catch (SQLException e){
                                  System.out.println(e.getMessage());
                              }
@@ -88,17 +91,25 @@ public class Main {
                                    System.out.println(e.getMessage());
                                }
 
-
-
-
                                break;
+                        case 3:
+                            try {
+                                out.println("Sub Category ID");
+                                int cusid = myObj.nextInt();
+                                ds.insertIntoCards(cusid);
+                            }catch (SQLException e){
+                                out.println(e.getMessage());
+                            }
+
+                            break;
                     }
+
                     break;
                 case "r":
                     System.out.println("\n\nReading from Database ");
                     System.out.println("press :\n" +
                             " 1 to see Products Info\n" +
-                            "2 to see Customers Info");
+                            "2 to see Customers Info"+"\n3 to list all the categories");
                     Scanner myObj3 = new Scanner(System.in);
                     int Menu2 = myObj.nextInt();
                     if(Menu2==1){
@@ -107,6 +118,15 @@ public class Main {
 
 
                         ds.queryCustomers();
+                    }
+                    else if(Menu2 == 3){
+                        out.println("\u001B[34m----------------------------CATEGORIES-----------------------------------");
+                        List<Category> catList = new ArrayList<>();
+                        catList  = ds.queryCategory();
+                        for (Category category : catList){
+                            out.println(category.toString());
+                        }
+                        out.println("----------------------------------------------------------------------------------\u001B[37m");
                     }
                     break;
                 case "u":
@@ -127,6 +147,7 @@ public class Main {
                             myObj.nextLine();
                             try {
                                 ds.updateProducts(productName, productPrice);
+                                out.println("successful");
                             } catch (SQLException e) {
                                 System.out.println(e.getMessage());
                             }

@@ -28,6 +28,8 @@ public class Datasource {
     private PreparedStatement deleteCustomer;
     private PreparedStatement updateProducts;
     private PreparedStatement updateCustomers;
+    private PreparedStatement deleteCards;
+    private PreparedStatement insertIntoCards;
 
 
     public boolean open() {
@@ -69,7 +71,7 @@ public class Datasource {
 
             queryProduct = conn.prepareStatement("SELECT * FROM products WHERE name = ? AND active = 1");
             queryProductsInfo = conn.prepareStatement("SELECT * FROM products WHERE active = 1");
-            queryCard = conn.prepareStatement("SELECT * FROM cards WHERE active =1");
+            queryCard = conn.prepareStatement("SELECT * FROM cards WHERE customer_id = ?  AND active =1");
             queryCategory = conn.prepareStatement("SELECT * FROM categories WHERE name = ? AND active = 1");
             queryCategoryInfo = conn.prepareStatement("SELECT * FROM categories WHERE active =1");
             queryCustomersInfo = conn.prepareStatement("SELECT * FROM customers WHERE active =1");
@@ -77,7 +79,6 @@ public class Datasource {
             insertIntoCatagories = conn.prepareStatement("INSERT INTO categories (name, sub_category_id, created_at) VALUES(?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             queryProductCategory = conn.prepareStatement("SELECT * FROM products_categories WHERE products_id = ? AND categories_id = ? AND active =1");
             queryCustomer = conn.prepareStatement("SELECT * FROM customers WHERE email = ? AND active =1", Statement.RETURN_GENERATED_KEYS);
-            queryCard = conn.prepareStatement("SELECT * FROM cards WHERE active =1");
             insertIntoProductCategories = conn.prepareStatement("INSERT INTO products_categories (products_id, categories_id, created_at) VALUES (?, ?, ?)");
             insertIntoCustomers = conn.prepareStatement("INSERT INTO customers (name, email, address, phone, created_at) VALUES (? , ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             deleteProducts = conn.prepareStatement("UPDATE products SET active = 0 WHERE id  = ?  ");
@@ -85,6 +86,8 @@ public class Datasource {
             deleteCustomer = conn.prepareStatement("UPDATE customers SET active = 0 WHERE id = ?");
             updateProducts = conn.prepareStatement("UPDATE products SET price = ? WHERE id = ? ");
             updateCustomers = conn.prepareStatement("UPDATE customers SET name = ? WHERE id = ? ");
+            deleteCards = conn.prepareStatement("UPDATE cards SET active = 0 WHERE customer_id = ? ");
+            insertIntoCards = conn.prepareStatement("INSERT INTO cards (customer_id,created_at) VALUES (?,?)",Statement.RETURN_GENERATED_KEYS);
             return true;
         } catch (SQLException e) {
             System.out.println("Couldn't connect to database: " + e.getMessage());
@@ -130,6 +133,27 @@ public class Datasource {
             if (insertIntoProducts != null) {
                 insertIntoProducts.close();
             }
+            if (insertIntoProductCategories != null) {
+                insertIntoProductCategories.close();
+            }
+            if (insertIntoCustomers != null) {
+                insertIntoCustomers.close();
+            }
+            if (updateCustomers != null) {
+                updateCustomers.close();
+            }
+            if (updateProducts != null) {
+                updateProducts.close();
+            }
+            if (deleteCustomer != null) {
+                deleteCustomer.close();
+            }
+            if (deleteProductsCategory != null) {
+                deleteProductsCategory.close();
+            }
+            if (deleteProducts != null) {
+                deleteProducts.close();
+            }
 
             if (conn != null) {
                 conn.close();
@@ -167,6 +191,7 @@ public class Datasource {
         return pl;
 
     }
+
 
     public List<Category> queryCategory() {
 
@@ -317,6 +342,37 @@ public class Datasource {
         }
     }
 
+    public int insertIntoCards(int customer_id)throws SQLException{
+//        queryCard.setInt(1, customer_id);
+        ResultSet results = queryCard.executeQuery();
+
+        if (results.next()) {
+
+            return results.getInt("id");
+
+        } else {
+
+            insertIntoCards.setInt(1, customer_id);
+            insertIntoCards.setString(2, new Timestamp(currentTimeMillis()).toString());
+
+            //this returns integer
+            //execute will return boolean
+            int affectedRows = insertIntoCards.executeUpdate();
+
+            if (affectedRows != 1) {
+                throw new SQLException("Couldn't insert into card!");
+            }
+
+            ResultSet generatedKeys = insertIntoCards.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                return generatedKeys.getInt(1);
+            } else {
+                throw new SQLException("Couldn't get id for card");
+            }
+        }
+    }
+
+
     private int insertCategory(String name, int subCategory) throws SQLException {
 
         queryCategory.setString(1, name);
@@ -404,14 +460,17 @@ public class Datasource {
     //inserting customer should insert card automaticaly
 
     //change this method to a transaction
-    public int insertCustomer(String name, String email, String address, String phone ) throws SQLException{
+
+    public int insertCustomer(String name, String email, String address, String phone ) throws SQLException {
 
         queryCustomer.setString(1, email);
         ResultSet results = queryCustomer.executeQuery();
 
-        if (results.next()) {
 
+        if (results.next()) {
             return results.getInt("id");
+
+
 
         } else {
 
@@ -421,9 +480,14 @@ public class Datasource {
             insertIntoCustomers.setString(4, phone);
             insertIntoCustomers.setString(5, new Timestamp(currentTimeMillis()).toString());
 
+
             //this returns integer
             //execute will return boolean
             int affectedRows = insertIntoCustomers.executeUpdate();
+
+            if (affectedRows == 1) {
+                System.out.println("Commitment completed successfully");
+            }
 
             if (affectedRows != 1) {
                 throw new SQLException("Couldn't insert customer!");
@@ -431,10 +495,15 @@ public class Datasource {
 
             ResultSet generatedKeys = insertIntoCustomers.getGeneratedKeys();
             if (generatedKeys.next()) {
-                return generatedKeys.getInt(1);
+
+                int gen = generatedKeys.getInt(1);
+                insertIntoCards.setInt(1,gen);
+                insertIntoCards.setString(2,new Timestamp(currentTimeMillis()).toString());
+                return gen;
             } else {
                 throw new SQLException("Couldn't get id for customer");
             }
+
         }
 
     }
@@ -453,6 +522,8 @@ public class Datasource {
 
             if (affectedRows1 != 1 || affectedRows2 != 1) {
                 throw new SQLException("Couldn't Delete Product!");
+            }else{
+                System.out.println("SUCCESSFUL");
             }
 
 
@@ -471,10 +542,14 @@ public class Datasource {
 
             int Customer_id = results.getInt("id");
             deleteCustomer.setInt(1,Customer_id);
+            deleteCards.setInt(1,Customer_id);
 
             int affectedRows1 = deleteCustomer.executeUpdate();
+            int affectedRows2 = deleteCards.executeUpdate();
             if (affectedRows1 != 1 ) {
                 throw new SQLException("Couldn't Delete Customer!");
+            }else{
+                System.out.println("SUCCESSFUL");
             }
 
 
@@ -501,6 +576,8 @@ public class Datasource {
 
             if (affectedRows != 1) {
                 throw new SQLException("Couldn't update product!");
+            }else{
+                System.out.println("SUCCESSFUL");
             }
 
         } else {
@@ -526,6 +603,8 @@ public class Datasource {
 
             if (affectedRows != 1) {
                 throw new SQLException("Couldn't update product!");
+            }else{
+                System.out.println("SUCCESSFUL");
             }
 
 
@@ -534,6 +613,33 @@ public class Datasource {
         }
 
     }
+//    public List<Card> queryCard() {
+//
+//        List<com.company.Card> cal = new ArrayList<>();
+//        try {
+//
+//            ResultSet rs = queryCard.executeQuery();
+//
+//            while (rs.next()) {
+//                cal.add(new com.company.Card(
+//                                rs.getInt("id"),
+//                                rs.getInt("customer_id")
+//                        )
+//                );
+//            }
+//
+//
+//        } catch (SQLException e) {
+//            System.out.println(e.getMessage());
+//            return null;
+//        }
+//
+//        return cal;
+//
+//    }
+
+
+
 
 
 
