@@ -29,7 +29,8 @@ public class Datasource {
     private PreparedStatement updateProducts;
     private PreparedStatement updateCustomers;
     private PreparedStatement deleteCards;
-    private PreparedStatement insertIntoCards;
+    private PreparedStatement insertIntocards;
+    private PreparedStatement insertIntoCard_details;
 
 
     public boolean open() {
@@ -71,14 +72,14 @@ public class Datasource {
 
             queryProduct = conn.prepareStatement("SELECT * FROM products WHERE name = ? AND active = 1");
             queryProductsInfo = conn.prepareStatement("SELECT * FROM products WHERE active = 1");
-            queryCard = conn.prepareStatement("SELECT * FROM cards WHERE customer_id = ?  AND active =1");
+            queryCard = conn.prepareStatement("SELECT * FROM cards WHERE customer_id = ? AND active = 1");
             queryCategory = conn.prepareStatement("SELECT * FROM categories WHERE name = ? AND active = 1");
             queryCategoryInfo = conn.prepareStatement("SELECT * FROM categories WHERE active =1");
             queryCustomersInfo = conn.prepareStatement("SELECT * FROM customers WHERE active =1");
             insertIntoProducts = conn.prepareStatement("INSERT INTO products (name, description, price, currency_id, created_at) VALUES(?, ? , ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             insertIntoCatagories = conn.prepareStatement("INSERT INTO categories (name, sub_category_id, created_at) VALUES(?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             queryProductCategory = conn.prepareStatement("SELECT * FROM products_categories WHERE products_id = ? AND categories_id = ? AND active =1");
-            queryCustomer = conn.prepareStatement("SELECT * FROM customers WHERE email = ? AND active =1", Statement.RETURN_GENERATED_KEYS);
+            queryCustomer = conn.prepareStatement("SELECT * FROM customers WHERE email = ? AND active = 1", Statement.RETURN_GENERATED_KEYS);
             insertIntoProductCategories = conn.prepareStatement("INSERT INTO products_categories (products_id, categories_id, created_at) VALUES (?, ?, ?)");
             insertIntoCustomers = conn.prepareStatement("INSERT INTO customers (name, email, address, phone, created_at) VALUES (? , ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             deleteProducts = conn.prepareStatement("UPDATE products SET active = 0 WHERE id  = ?  ");
@@ -87,7 +88,8 @@ public class Datasource {
             updateProducts = conn.prepareStatement("UPDATE products SET price = ? WHERE id = ? ");
             updateCustomers = conn.prepareStatement("UPDATE customers SET name = ? WHERE id = ? ");
             deleteCards = conn.prepareStatement("UPDATE cards SET active = 0 WHERE customer_id = ? ");
-            insertIntoCards = conn.prepareStatement("INSERT INTO cards (customer_id,created_at) VALUES (?,?)",Statement.RETURN_GENERATED_KEYS);
+            insertIntocards = conn.prepareStatement("INSERT INTO cards (customer_id, created_at) VALUES (?, ?)");
+            insertIntoCard_details = conn.prepareStatement("INSERT INTO card_details (card_id, product_id, quantity, currency_id,total_amount, created_at) VALUES (? , ?, ?, ?, ?, ?)");
             return true;
         } catch (SQLException e) {
             System.out.println("Couldn't connect to database: " + e.getMessage());
@@ -164,59 +166,63 @@ public class Datasource {
         }
     }
 
-    public List<Product> queryProducts() {
+    public void queryProducts() {
 
-        List<Product> pl = new ArrayList<>();
+
         try {
 
             ResultSet rs = queryProductsInfo.executeQuery();
 
+
+            System.out.println("__________________________________________________________________________________________________________");
+            System.out.format("%-8s %-18s %-55s %-8s %-8s\n", "id", "name", "description", "price", "currency_id");
+            System.out.println("__________________________________________________________________________________________________________");
             while (rs.next()) {
-                pl.add(new Product(
-                                rs.getInt("id"),
-                                rs.getString("name"),
-                                rs.getString("description"),
-                                rs.getDouble("price"),
-                                rs.getInt("currency_id")
-                        )
+                System.out.format("%-8s %-18s %-55s %-12.2f %-8s\n",
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getDouble("price"),
+                        rs.getInt("currency_id")
                 );
             }
 
 
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
-            return null;
         }
 
-        return pl;
 
     }
 
 
-    public List<Category> queryCategory() {
+    public void queryCategory() {
 
-        List<Category> cl = new ArrayList<>();
         try {
             ResultSet rs = queryCategoryInfo.executeQuery();
 
+
+            System.out.println("______________________________________________");
+            System.out.format("%-8s %-15s %-8s\n", "id", "name", "sub_category_id");
+            System.out.println("______________________________________________");
             while (rs.next()) {
-                cl.add(new Category(
-                                rs.getInt("id"),
-                                rs.getString("name"),
-                                rs.getInt("sub_category_id")
-                        )
+                System.out.format("%-8s %-22s %-8s\n",
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getInt("sub_category_id")
                 );
             }
 
 
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
-            return null;
         }
 
-        return cl;
 
     }
+
 
     public void queryCustomers() {
 
@@ -342,34 +348,53 @@ public class Datasource {
         }
     }
 
-    public int insertIntoCards(int customer_id)throws SQLException{
-//        queryCard.setInt(1, customer_id);
-        ResultSet results = queryCard.executeQuery();
+    public void insertCard(String name, String email, String address, String phone) throws SQLException {
 
-        if (results.next()) {
+        try {
+            conn.setAutoCommit(false);
 
-            return results.getInt("id");
+            int customer_id = insertCustomer(name, email, address, phone);
 
-        } else {
 
-            insertIntoCards.setInt(1, customer_id);
-            insertIntoCards.setString(2, new Timestamp(currentTimeMillis()).toString());
+            //Check if exist on product category already
+            queryCard.setInt(1, customer_id);
 
-            //this returns integer
-            //execute will return boolean
-            int affectedRows = insertIntoCards.executeUpdate();
-
-            if (affectedRows != 1) {
-                throw new SQLException("Couldn't insert into card!");
+            ResultSet card = queryCard.executeQuery();
+            if (card.next()) {
+                throw new SQLException("This card already exist and linked in the database");
             }
 
-            ResultSet generatedKeys = insertIntoCards.getGeneratedKeys();
-            if (generatedKeys.next()) {
-                return generatedKeys.getInt(1);
+            insertIntocards.setInt(1, customer_id);
+            insertIntocards.setString(2, new Timestamp(currentTimeMillis()).toString());
+
+
+            int affectedRows = insertIntocards.executeUpdate();
+
+            if (affectedRows == 1) {
+                System.out.println("Commitment completed successfully");
+                conn.commit();
             } else {
-                throw new SQLException("Couldn't get id for card");
+                throw new SQLException("The card insert failed");
             }
+
+        } catch (SQLException e) {
+            System.out.println("Insert card exception: " + e.getMessage());
+            try {
+                System.out.println("Performing rollback");
+                conn.rollback();
+            } catch (SQLException e2) {
+                System.out.println("rollback failed " + e2.getMessage());
+            }
+        } finally {
+            try {
+                System.out.println("Resetting default commit behavior");
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Couldn't reset auto-commit! " + e.getMessage());
+            }
+
         }
+
     }
 
 
@@ -497,8 +522,8 @@ public class Datasource {
             if (generatedKeys.next()) {
 
                 int gen = generatedKeys.getInt(1);
-                insertIntoCards.setInt(1,gen);
-                insertIntoCards.setString(2,new Timestamp(currentTimeMillis()).toString());
+                insertIntocards.setInt(1,gen);
+                insertIntocards.setString(2,new Timestamp(currentTimeMillis()).toString());
                 return gen;
             } else {
                 throw new SQLException("Couldn't get id for customer");
@@ -535,27 +560,45 @@ public class Datasource {
 
 
     public void deletingCustomer (String name) throws SQLException{
-        queryCustomer.setString(1, name);
-        ResultSet results = queryCustomer.executeQuery();
+        try {
+            conn.setAutoCommit(false);
 
-        if (results.next()) {
+            queryProduct.setString(1, name);
+            ResultSet results = queryProduct.executeQuery();
 
-            int Customer_id = results.getInt("id");
-            deleteCustomer.setInt(1,Customer_id);
-            deleteCards.setInt(1,Customer_id);
+            if (results.next()) {
 
-            int affectedRows1 = deleteCustomer.executeUpdate();
-            int affectedRows2 = deleteCards.executeUpdate();
-            if (affectedRows1 != 1 ) {
-                throw new SQLException("Couldn't Delete Customer!");
-            }else{
-                System.out.println("SUCCESSFUL");
+                int products_id = results.getInt("id");
+                //update products set active = 0 where id = products_id
+                deleteProductsCategory.setInt(1, products_id);
+                deleteProducts.setInt(1, products_id);
+
+                int affectedRows = deleteProductsCategory.executeUpdate();
+                int affectedRows2 = deleteProducts.executeUpdate();
+
+                if (affectedRows == 1 && affectedRows2 == 1) {
+                    System.out.println("Commitment completed successfully");
+                    conn.commit();
+                } else {
+                    throw new SQLException("The product category delete failed");
+                }
             }
 
-
-        } else {
-
-            System.out.println("Couldn't get id for Customer");
+        } catch (SQLException e) {
+            System.out.println("delete product category exception: " + e.getMessage());
+            try {
+                System.out.println("Performing rollback");
+                conn.rollback();
+            } catch (SQLException e2) {
+                System.out.println("rollback failed " + e2.getMessage());
+            }
+        } finally {
+            try {
+                System.out.println("Resetting default commit behavior");
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Couldn't reset auto-commit! " + e.getMessage());
+            }
         }
     }
 
@@ -613,31 +656,75 @@ public class Datasource {
         }
 
     }
-//    public List<Card> queryCard() {
-//
-//        List<com.company.Card> cal = new ArrayList<>();
-//        try {
-//
-//            ResultSet rs = queryCard.executeQuery();
-//
-//            while (rs.next()) {
-//                cal.add(new com.company.Card(
-//                                rs.getInt("id"),
-//                                rs.getInt("customer_id")
-//                        )
-//                );
-//            }
-//
-//
-//        } catch (SQLException e) {
-//            System.out.println(e.getMessage());
-//            return null;
-//        }
-//
-//        return cal;
-//
-//    }
+    public void insertCardDetails(String customerEmail, String productName, int quantity) throws SQLException {
 
+        queryCustomer.setString(1, customerEmail);
+        ResultSet results = queryCustomer.executeQuery();
+
+        if (results.next()) {
+
+            int customer_id = results.getInt("id");
+
+
+            queryCard.setInt(1, customer_id);
+            ResultSet rs = queryCard.executeQuery();
+
+            int card_id = rs.getInt("id");
+
+            queryProduct.setString(1, productName);
+            ResultSet result = queryProduct.executeQuery();
+
+            int product_id = result.getInt("id");
+            double price = result.getDouble("price");
+            int currency_id = result.getInt("currency_id");
+
+
+            insertIntoCard_details.setInt(1, card_id);
+            insertIntoCard_details.setInt(2, product_id);
+            insertIntoCard_details.setInt(3, quantity);
+            insertIntoCard_details.setInt(4, currency_id);
+            insertIntoCard_details.setDouble(5, (quantity * price));
+            insertIntoCard_details.setString(6, new Timestamp(currentTimeMillis()).toString());
+
+            int affectedRows = insertIntoCard_details.executeUpdate();
+            if (affectedRows == 1) {
+                System.out.println("Commitment completed successfully");
+            }
+
+            if (affectedRows != 1) {
+                throw new SQLException("Couldn't insert card details!");
+            }
+        }else {
+            throw new SQLException("Customer does not exist");
+        }
+    }
+
+
+    public boolean checkProducts(String productName) throws SQLException {
+
+        queryProduct.setString(1, productName);
+        ResultSet results = queryProduct.executeQuery();
+
+        if (!results.next()) {
+            System.out.println("product does not exist");
+            return false;
+        } else {
+            return true;
+        }
+    }
+    public boolean checkCustomers(String customerEmail) throws SQLException {
+
+        queryCustomer.setString(1, customerEmail);
+        ResultSet results = queryCustomer.executeQuery();
+
+        if (!results.next()) {
+            System.out.println("customer does not exist");
+            return false;
+        } else {
+            return true;
+        }
+
+    }
 
 
 

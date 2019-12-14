@@ -39,7 +39,7 @@ public class Main {
 
         int b = 1;
         while (b==1){
-            System.out.println("\u001B[32m"+"c to Insert into Database \nr to Show Database \nu to Update  \nd to Delete \ne to Exit "+"\u001B[37m");
+            System.out.println("\u001B[32m"+"c to Insert into Database \nr to Show Database \nu to Update  \nd to Delete \ne to Exit \na Add To Card "+"\u001B[37m");
             Scanner myObj = new Scanner(System.in);
             String Menu = myObj.nextLine();
             switch (Menu){
@@ -92,16 +92,6 @@ public class Main {
                                }
 
                                break;
-                        case 3:
-                            try {
-                                out.println("Sub Category ID");
-                                int cusid = myObj.nextInt();
-                                ds.insertIntoCards(cusid);
-                            }catch (SQLException e){
-                                out.println(e.getMessage());
-                            }
-
-                            break;
                     }
 
                     break;
@@ -121,11 +111,8 @@ public class Main {
                     }
                     else if(Menu2 == 3){
                         out.println("\u001B[34m----------------------------CATEGORIES-----------------------------------");
-                        List<Category> catList = new ArrayList<>();
-                        catList  = ds.queryCategory();
-                        for (Category category : catList){
-                            out.println(category.toString());
-                        }
+                        ds.queryCategory();
+
                         out.println("----------------------------------------------------------------------------------\u001B[37m");
                     }
                     break;
@@ -142,13 +129,20 @@ public class Main {
 
                             System.out.println("productName : ");
                             String productName = myObj.nextLine();
-                            System.out.println("productPrice : ");
-                            double productPrice = myObj.nextDouble();
-                            myObj.nextLine();
                             try {
-                                ds.updateProducts(productName, productPrice);
-                                out.println("successful");
-                            } catch (SQLException e) {
+                                if(ds.checkProducts(productName)) {
+                                    System.out.println("productNewPrice : ");
+
+                                    double productPrice = myObj.nextDouble();
+                                    myObj.nextLine();
+                                    try {
+                                        ds.updateProducts(productName, productPrice);
+                                        out.println("successful");
+                                    } catch (SQLException e) {
+                                        System.out.println(e.getMessage());
+                                    }
+                                }
+                            }catch(SQLException e) {
                                 System.out.println(e.getMessage());
                             }
 
@@ -159,19 +153,30 @@ public class Main {
 
                             System.out.println("Current customer`s Email : ");
                             String customerEmail = myObj.nextLine();
-                            System.out.println("Type customer New Name : ");
-                            String customerNewName = myObj.nextLine();
-                            try {
-                                ds.updateCustomers(customerEmail, customerNewName);
-                            } catch (SQLException e) {
+                            try{
+                                if (ds.checkCustomers(customerEmail)) {
+                                    System.out.println("Type customer New Name : ");
+                                    String customerNewName = myObj.nextLine();
+                                    try {
+                                        ds.updateCustomers(customerEmail, customerNewName);
+                                    } catch (SQLException e) {
+                                        System.out.println(e.getMessage());
+                                    }
+                                }
+                            }catch(SQLException e) {
                                 System.out.println(e.getMessage());
                             }
-
                             break;
                         }
-                    }
+                        default:
+                            out.println("you only have 2 options!!!");
+                            break;
+                    };
+
                     break;
-                case "d":
+
+
+            case "d":
                     System.out.println("\n\nDelete\n Press 1 to delete a customer \t 2 to delete product ");
                     int dMenu = myObj.nextInt();
                     myObj.nextLine();
@@ -195,6 +200,22 @@ public class Main {
                             } catch (SQLException e) {
                                 System.out.println(e.getMessage());
                             }
+                    }
+                    break;
+                case "a":
+
+                    System.out.println("customerEmail : ");
+                    String customerEmail = myObj.nextLine();
+                    System.out.println("productName : ");
+                    String productName = myObj.nextLine();
+                    System.out.println("quantity : ");
+                    int quantity = myObj.nextInt();
+                    myObj.nextLine();
+
+                    try{
+                        ds.insertCardDetails(customerEmail,productName,quantity);
+                    }catch(SQLException e){
+                        System.out.println(e.getMessage());
                     }
                     break;
                 case "e":
